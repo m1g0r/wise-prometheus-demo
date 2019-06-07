@@ -1,0 +1,64 @@
+global:
+  scrape_interval: 5s
+
+  external_labels:
+      monitor: 'Prometheus'
+
+rule_files:
+  - "alert.rules"
+
+scrape_configs:
+  - job_name: 'nodeexporter'
+    scrape_interval: 5s
+    ec2_sd_configs:
+      - region: eu-central-1
+        access_key: <aws_access_key>
+        secret_key: <aws_secret_key>
+        port: 9100
+    relabel_configs:
+      - source_labels: [__meta_ec2_tag_Name]
+        regex: demo-prod.*
+        action: keep
+      - source_labels: [__meta_ec2_instance_id]
+        target_label: instance
+
+  - job_name: 'cadvisor'
+    scrape_interval: 5s
+    ec2_sd_configs:
+      - region: eu-central-1
+        access_key: <aws_access_key>
+        secret_key: <aws_secret_key>
+        port: 8080
+    relabel_configs:
+      - source_labels: [__meta_ec2_tag_Name]
+        regex: demo-prod.*
+        action: keep
+      - source_labels: [__meta_ec2_instance_id]
+        target_label: instance
+
+  - job_name: 'prometheus'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'blackbox'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+        - https://google.com
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox_exporter:9115
+
+alerting:
+  alertmanagers:
+  - scheme: http
+    static_configs:
+    - targets: 
+      - 'alertmanager:9093'

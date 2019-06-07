@@ -1,0 +1,50 @@
+version: '3.3'
+
+volumes:
+    prometheus_data: {}
+    grafana_data: {}
+
+services:
+
+  prometheus:
+    image: prom/prometheus:v2.8.0
+    hostname: hostname.com
+    volumes:
+      - ./prometheus/:/etc/prometheus/
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=168h'
+      - '--web.enable-lifecycle'
+    ports:
+      - "9090:9090"
+
+  alertmanager:
+    image: prom/alertmanager:v0.16.1
+    hostname: hostname.com
+    volumes:
+      - ./alertmanager/:/etc/alertmanager/
+    command:
+      - '--config.file=/etc/alertmanager/config.yml'
+      - '--storage.path=/alertmanager'
+    ports:
+      - "9093:9093"
+
+  grafana:
+    image: grafana/grafana:6.0.2
+    hostname: hostname.com
+    volumes:
+      - grafana_data:/var/lib/grafana
+    environment:
+        GF_INSTALL_PLUGINS: "grafana-clock-panel,vonage-status-panel,grafana-piechart-panel"
+        GF_SECURITY_ADMIN_USER: ${ADMIN_USER:-admin}
+        GF_SECURITY_ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
+        GF_USERS_ALLOW_SIGN_UP: "false"
+    ports:
+      - "80:3000"
+
+  blackbox_exporter:
+    image: prom/blackbox-exporter
+    ports:
+      - "9115:9115"

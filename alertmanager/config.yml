@@ -1,0 +1,15 @@
+route:
+    receiver: 'slack'
+    group_wait: 30s
+    group_interval: 1m
+    repeat_interval: 1m
+
+receivers:
+    - name: 'slack'
+      slack_configs:
+          - send_resolved: true
+            title: "{{ .CommonAnnotations.summary }}"
+            text: 'Description: {{ range .Alerts }}{{ .Annotations.description }}\n{{ end }}'
+            username: 'PrometheusBot'
+            channel: '#slack'
+            api_url: '<slack_api_url>'
